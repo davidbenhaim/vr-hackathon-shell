@@ -2,6 +2,7 @@
 
 <head>
   <title>Augmented Reality Marker Detector</title>
+  <script type="text/javascript" src="lib/utils.js"></script>
   <script type="text/javascript" src="lib/svd.js"></script>
   <script type="text/javascript" src="lib/posit1.js"></script>
   <script type="text/javascript" src="lib/cv.js"></script>
@@ -19,6 +20,9 @@
 
     // how big the tiles are
     var modelSize = 39.5;
+    var alpha = 0.75;
+
+    var stability = 0.0;
 
     function getDimensions(){
     	canvas = document.getElementById('canvas');
@@ -31,7 +35,7 @@
       video = document.getElementById("video");
       canvas = document.getElementById("canvas");
       context = canvas.getContext("2d");
-      dims = getDimensions()
+      dims = getDimensions();
       canvas.width = 640;
       canvas.height = 480;
 
@@ -46,8 +50,8 @@
           } else {
             video.src = stream;
           }
-          // initScene();
-          // animate();
+          initScene();
+          animate();
         }
 
         function errorCallback(error){
@@ -62,50 +66,49 @@
     }
 
     var scene, camera, renderer;
-    var geometry, material, mesh, texture, sceneMaterial, cameraPlane;
+    var geometry, material, mesh, texture, sceneMaterial, cameraPlane, meshContainer;
 
     function initScene() {
 
       // setup scene and camera
       scene = new THREE.Scene();
 
-      camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-      camera.position.z = 1000;
+      camera = new THREE.PerspectiveCamera( 40, canvas.width / canvas.height, 1, 10000 );
+      camera.position.z = 10;
 
-      // add video background texture
-      texture = new  THREE.VideoTexture(video);
-      cameraPlane = new THREE.PlaneGeometry(1920, 1280);
-      cameraMesh = new THREE.Mesh(cameraPlane, new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        opacity: 1,
-        map: texture
-      }))
-      cameraMesh.position.z = -600; // TODO
-      scene.add(cameraMesh);
 
       // add a box
-      geometry = new THREE.BoxGeometry( 200, 200, 200 );
-      material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+      geometry = new THREE.BoxGeometry( 1, 1, 1 );
+      material = new THREE.MeshNormalMaterial( { color: 0xff0000, wireframe: false } );
 
+      meshContainer = new THREE.Object3D();
       mesh = new THREE.Mesh( geometry, material );
-      scene.add( mesh );
+      mesh.scale.set(1, 1, 1);
+      mesh.position.set(0, 0, 0.45);
+      mesh.rotation.set(0, 0.0, 0);
+      meshContainer.add( mesh );
+      scene.add( meshContainer );
 
-      renderer = new THREE.WebGLRenderer();
-      renderer.setSize( window.innerWidth, window.innerHeight );
-      document.body.appendChild( renderer.domElement );
+
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true
+      });
+      renderer.setSize( canvas.width, canvas.height );
+      document.getElementById('threeContainer').appendChild( renderer.domElement );
     }
 
     function animate() {
-      if (context) {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-      if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        texture.needsUpdate = true;
-      }
+      // if (context) {
+      //   context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      // }
+      // if (video.readyState === video.HAVE_ENOUGH_DATA) {
+      //   texture.needsUpdate = true;
+      // }
       requestAnimationFrame( animate );
 
-      mesh.rotation.x += 0.01;
-      mesh.rotation.y += 0.02;
+      // mesh.rotation.x += 0.01;
+      // mesh.rotation.y += 0.02;
 
       renderer.render( scene, camera );
 
@@ -126,8 +129,9 @@
         } else {
         	markers = detector.detect(imageData);
         }
-        drawCorners(markers);
-        drawId(markers);
+        // drawCorners(markers);
+        // drawId(markers);
+        updateCameraPose(markers);
       }
       // var end = new Date();
       // console.log(end - start);
@@ -176,21 +180,41 @@
 
       context.strokeStyle = "blue";
       context.lineWidth = 1;
-
       for (i = 0; i !== markers.length; ++ i){
-        corners = markers[i].points;
-
+        corners = markers[i].points || markers[i].corners;
         x = Infinity;
         y = Infinity;
+        if (corners) {
+          for (j = 0; j !== corners.length; ++ j) {
+            corner = corners[j];
 
-        for (j = 0; j !== corners.length; ++ j){
-          corner = corners[j];
-
-          x = Math.min(x, corner.x);
-          y = Math.min(y, corner.y);
+            x = Math.min(x, corner.x);
+            y = Math.min(y, corner.y);
+          }
+          context.strokeText(markers[i].id, x, y);
         }
-        context.strokeText(markers[i].id, x, y)
       }
+    }
+
+    function updateCameraPose(markers) {
+      var pose;
+      for (i = 0; i !== markers.length; ++ i){
+        corners = markers[i].points || markers[i].corners;
+        for (var j = 0; j < corners.length; j++) {
+          var corner = corners[j];
+          corner.x = corner.x - (canvas.width / 2);
+          corner.y = (canvas.height / 2) - corner.y;
+        }
+        pose = posit.pose(corners);
+      }
+      if (pose) {
+        updateObject(meshContainer, pose.bestRotation, pose.bestTranslation);
+      }
+
+
+      // if (Math.random() > 0.99) {
+      //   console.log(pose);
+      // }
     }
 
     function updateScenes(markers){
@@ -199,7 +223,7 @@
       if (markers.length > 0){
         corners = markers[0].corners;
 
-        for (i = 0; i < corners.length; ++ i){
+        for (i = 0; i < corners.length; ++ i) {
           corner = corners[i];
 
           corner.x = corner.x - (canvas.width / 2);
@@ -220,29 +244,98 @@
       texture.children[0].material.map.needsUpdate = true;
     };
 
-    function updateObject(object, rotation, translation){
-      object.scale.x = modelSize;
-      object.scale.y = modelSize;
-      object.scale.z = modelSize;
+    function exponentialMovingAverage(vec, target, alpha) {
+      if (!vec.x) {
+        vec.x = 0;
+      }
+      if (!vec.y) {
+        vec.y = 0;
+      }
+      if (!vec.z) {
+        vec.z = 0;
+      }
+      var x0 = vec.x * alpha + target.x * (1.0 - alpha);
+      var y0 = vec.y * alpha + target.y * (1.0 - alpha);
+      var z0 = vec.z * alpha + target.z * (1.0 - alpha);
 
-      object.rotation.x = -Math.asin(-rotation[1][2]);
-      object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
-      object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
-      object.position.x = translation[0];
-      object.position.y = translation[1];
-      object.position.z = -translation[2];
+      // var alphaStabilized = alpha + (1.0 - alpha) * stability * 0.9;
+      // var x1 = vec.x * alpha + target.x * (1.0 - alphaStabilized);
+      // var y1 = vec.y * alpha + target.y * (1.0 - alphaStabilized);
+      // var z1 = vec.z * alpha + target.z * (1.0 - alphaStabilized);
+
+      var dx = vec.x - x0;
+      var dy = vec.y - y0;
+      var dz = vec.z - z0;
+      var dis = Math.sqrt(dx*dx+dy*dy+dz*dz);
+
+      stability += 0.1;
+      stability /= (1.0 + dis);
+      stability = Math.min(stability, 1.0);
+
+
+      var alphaStabilized = alpha + (1.0 - alpha) * stability * 0.9;
+      var x1 = vec.x * alphaStabilized + target.x * (1.0 - alphaStabilized);
+      var y1 = vec.y * alphaStabilized + target.y * (1.0 - alphaStabilized);
+      var z1 = vec.z * alphaStabilized + target.z * (1.0 - alphaStabilized);
+
+      vec.x = x1;
+      vec.y = y1;
+      vec.z = z1;
+    }
+
+    function updateObject(object, rotation, translation){
+      // object.scale.x = modelSize;
+      // object.scale.y = modelSize;
+      // object.scale.z = modelSize;
+      exponentialMovingAverage(object.scale, {
+        x: modelSize,
+        y: modelSize,
+        z: modelSize
+      }, alpha);
+
+      // object.rotation.x = -Math.asin(-rotation[1][2]);
+      // object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
+      // object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
+      exponentialMovingAverage(object.rotation, {
+        x: -Math.asin(-rotation[1][2]),
+        y: -Math.atan2(rotation[0][2], rotation[2][2]),
+        z: Math.atan2(rotation[1][0], rotation[1][1])
+      }, alpha);
+
+
+      // object.position.x = translation[0];
+      // object.position.y = translation[1];
+      // object.position.z = -translation[2];
+      exponentialMovingAverage(object.position, {
+        x: translation[0],
+        y: translation[1],
+        z: -translation[2]
+      }, alpha);
+      // console.log(stability);
     };
 
     window.onload = onLoad;
   </script>
 
+<style>
+canvas {
+  position: absolute;
+  top: 0;
+  margin: 0;
+  left: 0;
+  width: 100% !important;
+  height: auto !important;
+}
+</style>
 </head>
 
-<body style="font-family: monospace;">
+<body style="font-family: monospace; margin: 0px;background: black;">
 
   <center>
     <video id="video" autoplay="true" style="display: none;"></video>
-    <canvas id="canvas" style="width: 100%; margin: 50px;"></canvas>
+    <div id="threeContainer" style="position: absolute; width: 100%; height: 100%; top: 0px;">
+      <canvas id="canvas" style="width: 100%;"></canvas>
+    </div>
   </center>
 
 </body>
