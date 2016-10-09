@@ -7,11 +7,13 @@
   <script type="text/javascript" src="lib/three.js/build/three.js"></script>
   <script>
     var video, canvas, context, imageData, detector;
+    aruco = require('node-aruco');
+    nativeImage = require('electron').nativeImage;
 
     function getDimensions(){
     	canvas = document.getElementById('canvas');
-    	width = canvas.width;
-    	height = canvas.height;
+    	width = canvas.style.width;
+    	height = canvas.style.height;
     	return {width: width, height: height}
     }
 
@@ -20,8 +22,8 @@
       canvas = document.getElementById("canvas");
       context = canvas.getContext("2d");
       dims = getDimensions()
-      canvas.width = dims.width;
-      canvas.height = dims.height;
+      canvas.width = 640;
+      canvas.height = 480;
 
       navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
       if (navigator.getUserMedia){
@@ -99,15 +101,15 @@
     }
 
     function tick(){
-      // var start = new Date();
-      dims = getDimensions()
-      canvas.width = dims.width;
-      canvas.height = dims.height;
+      var start = new Date();
+      // dims = getDimensions()
+      // canvas.width = dims.width;
+      // canvas.height = dims.height;
       requestAnimationFrame(tick);
 
       if (video.readyState === video.HAVE_ENOUGH_DATA){
         snapshot();
-        var markers = detector.detect(imageData);
+        var markers = aruco.detect(imageData); //detector.detect(imageData);
         drawCorners(markers);
         drawId(markers);
       }
@@ -117,7 +119,8 @@
 
     function snapshot(){
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+	  // imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      imageData = nativeImage.createFromDataURL(canvas.toDataURL()).toJPEG(100);
     }
 
     function drawCorners(markers){
@@ -125,7 +128,7 @@
 
       context.lineWidth = 3;
       for (i = 0; i !== markers.length; ++ i){
-        corners = markers[i].corners;
+        corners = markers[i].points;
 
         context.strokeStyle = "red";
         context.beginPath();
@@ -150,7 +153,7 @@
       context.lineWidth = 1;
 
       for (i = 0; i !== markers.length; ++ i){
-        corners = markers[i].corners;
+        corners = markers[i].points;
 
         x = Infinity;
         y = Infinity;
@@ -172,9 +175,8 @@
 <body style="font-family: monospace;">
 
   <center>
-    <div style="margin: 10px;"><strong>-= Augmented Reality Marker Detector =-</strong></div>
-    <video id="video" autoplay="true" style="display:none;"></video>
-    <canvas id="canvas" style="width: 640px; height: 480px;"></canvas>
+    <video id="video" autoplay="true" style="display: none;"></video>
+    <canvas id="canvas" style="width: 100%; margin: 50px;"></canvas>
   </center>
 
 </body>
