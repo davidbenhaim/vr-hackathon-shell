@@ -2,11 +2,16 @@
 
 <head>
   <title>Augmented Reality Marker Detector</title>
+  <script type="text/javascript" src="lib/jquery/dist/jquery.min.js"></script>
+  <script type="text/javascript" src="lib/three.js/build/three.js"></script>
+  <script type="text/javascript" src="lib/depth-hack.js"></script>
   <script type="text/javascript" src="lib/svd.js"></script>
   <script type="text/javascript" src="lib/posit1.js"></script>
   <script type="text/javascript" src="lib/cv.js"></script>
   <script type="text/javascript" src="lib/aruco.js"></script>
-  <script type="text/javascript" src="lib/three.js/build/three.js"></script>
+
+
+
   <script type="text/javascript" src="lib/utils.js"></script>
   <script>
     var video, canvas, context, imageData, detector;
@@ -19,8 +24,8 @@
     nativeImage = require('electron').nativeImage;
 
     // how big the tiles are
-    var modelSize = 39.5;
-    var alpha = 0.75;
+    var modelSize = 39.5 * 0 + 1;
+    var alpha = 0.75 * 0;
 
     var stability = 0.0;
 
@@ -51,7 +56,7 @@
             video.src = stream;
           }
           initScene();
-          animate();
+          // animate();
         }
 
         function errorCallback(error){
@@ -84,7 +89,7 @@
       meshContainer = new THREE.Object3D();
       mesh = new THREE.Mesh( geometry, material );
       mesh.scale.set(1, 1, 1);
-      mesh.position.set(0, 0, 0.45);
+      mesh.position.set(0, 0, 0.45 * 0);
       mesh.rotation.set(0, 0.0, 0);
       meshContainer.add( mesh );
       scene.add( meshContainer );
@@ -119,7 +124,9 @@
       // dims = getDimensions()
       // canvas.width = dims.width;
       // canvas.height = dims.height;
-      requestAnimationFrame(tick);
+      setTimeout(function(){
+        requestAnimationFrame(tick);
+      }, 1000 / 60);
 
       if (video.readyState === video.HAVE_ENOUGH_DATA){
         snapshot();
@@ -209,6 +216,7 @@
       }
       if (pose) {
         updateObject(meshContainer, pose.bestRotation, pose.bestTranslation);
+        __setPose(meshContainer.position, meshContainer.rotation, meshContainer.scale);
       }
     }
 
@@ -287,13 +295,19 @@
 
 <style>
 canvas {
-  position: absolute;
+  position: relative;
   top: 0;
   margin: 0;
   left: 0;
   width: 100% !important;
   height: auto !important;
 }
+
+/*.depth-container {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}*/
 </style>
 </head>
 
@@ -301,8 +315,8 @@ canvas {
 
   <center>
     <video id="video" autoplay="true" style="display: none;"></video>
-    <div id="threeContainer" style="position: absolute; width: 100%; height: 100%; top: 0px;">
-      <canvas id="canvas" style="width: 100%;"></canvas>
+    <div id="threeContainer" class="depth-container" style="position: absolute; width: 100%; height: 100%; top: 0px;">
+      <canvas id="canvas" style=""></canvas>
     </div>
   </center>
 
