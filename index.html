@@ -4,7 +4,7 @@
   <title>Augmented Reality Marker Detector</title>
   <script type="text/javascript" src="lib/cv.js"></script>
   <script type="text/javascript" src="lib/aruco.js"></script>
-
+  <script type="text/javascript" src="lib/three.js/build/three.js"></script>
   <script>
     var video, canvas, context, imageData, detector;
 
@@ -34,6 +34,8 @@
           } else {
             video.src = stream;
           }
+          initScene();
+          animate();
         }
 
         function errorCallback(error){
@@ -44,6 +46,56 @@
         detector = new AR.Detector();
         requestAnimationFrame(tick);
       }
+    }
+
+    var scene, camera, renderer;
+    var geometry, material, mesh, texture, sceneMaterial, cameraPlane;
+
+    function initScene() {
+      
+      // setup scene and camera
+      scene = new THREE.Scene();
+
+      camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
+      camera.position.z = 1000;
+
+      // add video background texture
+      texture = new  THREE.VideoTexture(video);
+      cameraPlane = new THREE.PlaneGeometry(1920, 1280);
+      cameraMesh = new THREE.Mesh(cameraPlane, new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        opacity: 1,
+        map: texture
+      }))
+      cameraMesh.position.z = -600; // TODO
+      scene.add(cameraMesh);
+
+      // add a box
+      geometry = new THREE.BoxGeometry( 200, 200, 200 );
+      material = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+
+      mesh = new THREE.Mesh( geometry, material );
+      scene.add( mesh );
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setSize( window.innerWidth, window.innerHeight );
+      document.body.appendChild( renderer.domElement );
+    }
+
+    function animate() {
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        texture.needsUpdate = true;
+      }
+      requestAnimationFrame( animate );
+
+      mesh.rotation.x += 0.01;
+      mesh.rotation.y += 0.02;
+
+      renderer.render( scene, camera );
+
     }
 
     function tick(){
