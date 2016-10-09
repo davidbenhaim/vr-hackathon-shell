@@ -2,12 +2,19 @@
 
 <head>
   <title>Augmented Reality Marker Detector</title>
+  <script type="text/javascript" src="lib/svd.js"></script>
+  <script type="text/javascript" src="lib/posit1.js"></script>
   <script type="text/javascript" src="lib/cv.js"></script>
   <script type="text/javascript" src="lib/aruco.js"></script>
   <script type="text/javascript" src="lib/three.js/build/three.js"></script>
   <script>
     var video, canvas, context, imageData, detector;
-    aruco = require('node-aruco');
+    var aruco;
+    try{
+    	aruco = require('node-aruco');
+    }catch(err){
+    	console.log('No Aruco :(')
+    }
     nativeImage = require('electron').nativeImage;
 
     // how big the tiles are
@@ -58,7 +65,7 @@
     var geometry, material, mesh, texture, sceneMaterial, cameraPlane;
 
     function initScene() {
-      
+
       // setup scene and camera
       scene = new THREE.Scene();
 
@@ -113,7 +120,11 @@
 
       if (video.readyState === video.HAVE_ENOUGH_DATA){
         snapshot();
-        var markers = aruco.detect(imageData); //detector.detect(imageData);
+        if(typeof aruco !== "undefined" && aruco !== null) {
+        	var markers = aruco.detect(imageData);
+        } else {
+        	detector.detect(imageData);
+        }
         drawCorners(markers);
         drawId(markers);
       }
@@ -123,8 +134,12 @@
 
     function snapshot(){
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-	  // imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      imageData = nativeImage.createFromDataURL(canvas.toDataURL()).toJPEG(100);
+	  if(typeof aruco !== "undefined" && aruco !== null) {
+      	imageData = nativeImage.createFromDataURL(canvas.toDataURL()).toJPEG(100);
+       } else {
+        imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+       }
+
     }
 
     function drawCorners(markers){
@@ -191,8 +206,6 @@
         updateObject(plane1, pose.bestRotation, pose.bestTranslation);
         updateObject(plane2, pose.alternativeRotation, pose.alternativeTranslation);
         updateObject(model, pose.bestRotation, pose.bestTranslation);
-        updatePose("pose1", pose.bestError, pose.bestRotation, pose.bestTranslation);
-        updatePose("pose2", pose.alternativeError, pose.alternativeRotation, pose.alternativeTranslation);
 
         step += 0.025;
 
@@ -213,23 +226,6 @@
       object.position.x = translation[0];
       object.position.y = translation[1];
       object.position.z = -translation[2];
-    };
-
-    function updatePose(id, error, rotation, translation){
-      var yaw = -Math.atan2(rotation[0][2], rotation[2][2]);
-      var pitch = -Math.asin(-rotation[1][2]);
-      var roll = Math.atan2(rotation[1][0], rotation[1][1]);
-
-      var d = document.getElementById(id);
-      d.innerHTML = " error: " + error
-                  + "<br/>"
-                  + " x: " + (translation[0] | 0)
-                  + " y: " + (translation[1] | 0)
-                  + " z: " + (translation[2] | 0)
-                  + "<br/>"
-                  + " yaw: " + Math.round(-yaw * 180.0/Math.PI)
-                  + " pitch: " + Math.round(-pitch * 180.0/Math.PI)
-                  + " roll: " + Math.round(roll * 180.0/Math.PI);
     };
 
     window.onload = onLoad;
