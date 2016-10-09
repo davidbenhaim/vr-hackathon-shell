@@ -148,7 +148,11 @@
 
       context.lineWidth = 3;
       for (i = 0; i !== markers.length; ++ i){
-        corners = markers[i].points;
+      	if(typeof markers[i].points !== "undefined" && markers[i].points !== null) {
+      		corners = markers[i].points;
+      	}else{
+      		corners = markers[i].corners;
+      	}
 
         context.strokeStyle = "red";
         context.beginPath();
