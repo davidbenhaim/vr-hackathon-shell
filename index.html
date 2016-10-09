@@ -222,7 +222,6 @@
       if (!vec.z) {
         vec.z = 0;
       }
-      alpha = 0.0;
       var x0 = vec.x * alpha + target.x * (1.0 - alpha);
       var y0 = vec.y * alpha + target.y * (1.0 - alpha);
       var z0 = vec.z * alpha + target.z * (1.0 - alpha);
@@ -247,12 +246,9 @@
       var y1 = vec.y * alphaStabilized + target.y * (1.0 - alphaStabilized);
       var z1 = vec.z * alphaStabilized + target.z * (1.0 - alphaStabilized);
 
-      // vec.x = x1;
-      // vec.y = y1;
-      // vec.z = z1;
-      vec.x = x0;
-      vec.y = y0;
-      vec.z = z0;
+      vec.x = x1;
+      vec.y = y1;
+      vec.z = z1;
     }
 
     function updateObject(object, rotation, translation){
