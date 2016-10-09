@@ -2,12 +2,12 @@
 
 <head>
   <title>Augmented Reality Marker Detector</title>
-  <script type="text/javascript" src="lib/utils.js"></script>
   <script type="text/javascript" src="lib/svd.js"></script>
   <script type="text/javascript" src="lib/posit1.js"></script>
   <script type="text/javascript" src="lib/cv.js"></script>
   <script type="text/javascript" src="lib/aruco.js"></script>
   <script type="text/javascript" src="lib/three.js/build/three.js"></script>
+  <script type="text/javascript" src="lib/utils.js"></script>
   <script>
     var video, canvas, context, imageData, detector;
     var aruco;
@@ -129,8 +129,8 @@
         } else {
         	markers = detector.detect(imageData);
         }
-        // drawCorners(markers);
-        // drawId(markers);
+        drawCorners(markers);
+        drawId(markers);
         updateCameraPose(markers);
       }
       // var end = new Date();
@@ -222,6 +222,7 @@
       if (!vec.z) {
         vec.z = 0;
       }
+      alpha = 0.0;
       var x0 = vec.x * alpha + target.x * (1.0 - alpha);
       var y0 = vec.y * alpha + target.y * (1.0 - alpha);
       var z0 = vec.z * alpha + target.z * (1.0 - alpha);
@@ -246,9 +247,12 @@
       var y1 = vec.y * alphaStabilized + target.y * (1.0 - alphaStabilized);
       var z1 = vec.z * alphaStabilized + target.z * (1.0 - alphaStabilized);
 
-      vec.x = x1;
-      vec.y = y1;
-      vec.z = z1;
+      // vec.x = x1;
+      // vec.y = y1;
+      // vec.z = z1;
+      vec.x = x0;
+      vec.y = y0;
+      vec.z = z0;
     }
 
     function updateObject(object, rotation, translation){
