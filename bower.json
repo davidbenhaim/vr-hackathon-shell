@@ -1,0 +1,28 @@
+{
+  "name": "workbench",
+  "description": "workbench app",
+  "main": "index.js",
+  "authors": [
+    "dbenny",
+    "nhuynh3",
+    "aparangi",
+    "eksr"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "electron-app",
+    "electron"
+  ],
+  "homepage": "https://github.com/davidbenhaim/vr-hackathon-shell",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "three.js": "threejs#*"
+  }
+}

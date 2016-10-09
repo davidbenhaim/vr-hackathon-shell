@@ -25,6 +25,7 @@
     "electron"
   ],
   "dependencies": {
+    "bower": "^1.7.9",
     "electron-debug": "^1.0.0",
     "nan": "^2.4.0"
   },
