@@ -10,6 +10,9 @@
     aruco = require('node-aruco');
     nativeImage = require('electron').nativeImage;
 
+    // how big the tiles are
+    var modelSize = 39.5;
+
     function getDimensions(){
     	canvas = document.getElementById('canvas');
     	width = canvas.style.width;
@@ -46,6 +49,7 @@
         navigator.getUserMedia({video: true}, successCallback, errorCallback);
 
         detector = new AR.Detector();
+        posit = new POS.Posit(modelSize, canvas.width)
         requestAnimationFrame(tick);
       }
     }
@@ -146,6 +150,7 @@
         context.strokeRect(corners[0].x - 2, corners[0].y - 2, 4, 4);
       }
     }
+
     function drawId(markers){
       var corners, corner, x, y, i, j;
 
@@ -167,6 +172,66 @@
         context.strokeText(markers[i].id, x, y)
       }
     }
+
+    function updateScenes(markers){
+      var corners, corner, pose, i;
+
+      if (markers.length > 0){
+        corners = markers[0].corners;
+
+        for (i = 0; i < corners.length; ++ i){
+          corner = corners[i];
+
+          corner.x = corner.x - (canvas.width / 2);
+          corner.y = (canvas.height / 2) - corner.y;
+        }
+
+        pose = posit.pose(corners);
+
+        updateObject(plane1, pose.bestRotation, pose.bestTranslation);
+        updateObject(plane2, pose.alternativeRotation, pose.alternativeTranslation);
+        updateObject(model, pose.bestRotation, pose.bestTranslation);
+        updatePose("pose1", pose.bestError, pose.bestRotation, pose.bestTranslation);
+        updatePose("pose2", pose.alternativeError, pose.alternativeRotation, pose.alternativeTranslation);
+
+        step += 0.025;
+
+        model.rotation.z -= step;
+      }
+
+      texture.children[0].material.map.needsUpdate = true;
+    };
+
+    function updateObject(object, rotation, translation){
+      object.scale.x = modelSize;
+      object.scale.y = modelSize;
+      object.scale.z = modelSize;
+
+      object.rotation.x = -Math.asin(-rotation[1][2]);
+      object.rotation.y = -Math.atan2(rotation[0][2], rotation[2][2]);
+      object.rotation.z = Math.atan2(rotation[1][0], rotation[1][1]);
+      object.position.x = translation[0];
+      object.position.y = translation[1];
+      object.position.z = -translation[2];
+    };
+
+    function updatePose(id, error, rotation, translation){
+      var yaw = -Math.atan2(rotation[0][2], rotation[2][2]);
+      var pitch = -Math.asin(-rotation[1][2]);
+      var roll = Math.atan2(rotation[1][0], rotation[1][1]);
+
+      var d = document.getElementById(id);
+      d.innerHTML = " error: " + error
+                  + "<br/>"
+                  + " x: " + (translation[0] | 0)
+                  + " y: " + (translation[1] | 0)
+                  + " z: " + (translation[2] | 0)
+                  + "<br/>"
+                  + " yaw: " + Math.round(-yaw * 180.0/Math.PI)
+                  + " pitch: " + Math.round(-pitch * 180.0/Math.PI)
+                  + " roll: " + Math.round(roll * 180.0/Math.PI);
+    };
+
     window.onload = onLoad;
   </script>
 
