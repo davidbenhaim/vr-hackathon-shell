@@ -120,10 +120,11 @@
 
       if (video.readyState === video.HAVE_ENOUGH_DATA){
         snapshot();
+        var markers = [];
         if(typeof aruco !== "undefined" && aruco !== null) {
-        	var markers = aruco.detect(imageData);
+        	markers = aruco.detect(imageData);
         } else {
-        	detector.detect(imageData);
+        	markers = detector.detect(imageData);
         }
         drawCorners(markers);
         drawId(markers);
